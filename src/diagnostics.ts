@@ -1,6 +1,5 @@
 import { Node } from "./types";
 import * as core from "@actions/core";
-import { getCurrentProgram } from "./compiler";
 import ts from "typescript";
 import { formatDiagnostic } from "./format";
 
@@ -26,7 +25,8 @@ export const maxDurationRule = (duration: number): MaxDurationRule => {
     duration,
     errorMessage: `Expression exceeds max duration of ${duration}ms`,
     apply: function (expr: Node) {
-      return expr.dur > duration;
+      // convert duration in microseconds to milliseconds
+      return expr.dur / 1000 > duration;
     },
   };
 };

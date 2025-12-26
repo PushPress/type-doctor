@@ -6,5 +6,3 @@ export function printAnnotation(
 ) {
   core.error(message, props);
 }
-
-export function printDiagnostics() {}

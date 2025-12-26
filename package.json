@@ -1,6 +1,6 @@
 {
   "name": "@pushpress/type-doctor",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "type doctor diagnoses potential typescript performance issues",
   "module": "index.ts",
   "type": "module",
