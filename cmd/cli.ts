@@ -3,10 +3,11 @@ import * as Trace from "../src/trace-parser";
 import { report, maxDurationRule, annotate, format } from "../src/diagnostics";
 import { pipe } from "../src/pipe";
 import { getCurrentProgram } from "../src/compiler";
-import { printAnnotation } from "./print";
+import { printAnnotation, printHelp } from "./print";
+const log = debuglog("type-doctor");
 
 const {
-  values: { checkTimeMsError: maxDuration, annotate: _annotate, debug },
+  values: { checkTimeMsError: maxDuration, annotate: _annotate, debug, help },
   positionals: _positionals,
 } = parseArgs({
   args: Bun.argv,
@@ -25,8 +26,17 @@ const {
       type: "boolean",
       short: "d",
     },
+    help: {
+      type: "boolean",
+      short: "h",
+    },
   },
 });
+
+if (help) {
+  printHelp();
+  process.exit(0);
+}
 
 if (debug) {
   process.env.NODE_DEBUG = "true";
@@ -54,7 +64,7 @@ function parseMaxDurationFlag(str: string): number {
 
 // main function
 for (const positional of positionals) {
-  debuglog("Reading file: " + positional);
+  log("Reading file: " + positional);
   const file = await Bun.file(positional).json();
   const program = getCurrentProgram();
 
@@ -68,7 +78,7 @@ for (const positional of positionals) {
     pipe(maxDuration).to(parseMaxDurationFlag, maxDurationRule),
   ]);
 
-  debuglog("Raw diagnostics: " + JSON.stringify(diagnostics));
+  log("Raw diagnostics: " + JSON.stringify(diagnostics));
   // print diagnostics
   if (process.env.CI || _annotate) {
     debuglog("Annotating diagnostics");
