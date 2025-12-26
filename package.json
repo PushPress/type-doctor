@@ -9,7 +9,8 @@
     "bin"
   ],
   "bin": {
-    "td": "./bin/td"
+    "td": "./bin/td",
+    "type-doctor": "./bin/td"
   },
   "scripts": {
     "prepublish": "bun run build",
