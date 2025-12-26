@@ -1,0 +1,27 @@
+{
+  "name": "@pushpress/type-doctor",
+  "version": "0.0.1",
+  "description": "type doctor diagnoses potential typescript performance issues",
+  "module": "index.ts",
+  "type": "module",
+  "files": [
+    "src",
+    "bin"
+  ],
+  "bin": {
+    "td": "./bin/td"
+  },
+  "scripts": {
+    "prepublish": "bun run build",
+    "build": "bun build ./cmd/cli.ts --compile --outfile ./bin/td"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.5"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@actions/core": "^2.0.1"
+  }
+}
