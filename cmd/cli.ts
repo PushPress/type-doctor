@@ -7,7 +7,7 @@ import { printAnnotation } from "./print";
 
 const {
   values: { maxDuration, annotate: _annotate },
-  positionals,
+  positionals: _positionals,
 } = parseArgs({
   args: Bun.argv,
   allowPositionals: true,
@@ -25,6 +25,8 @@ const {
   },
 });
 
+const positionals = _positionals.slice(2);
+
 // parse flags
 function parseMaxDurationFlag(str: string): number {
   const val = parseInt(str);
@@ -32,6 +34,12 @@ function parseMaxDurationFlag(str: string): number {
     throw Error("invalid max duration");
   }
   return val;
+}
+
+if (!positionals.length) {
+  console.log(
+    "At least one trace json file is required as a positional arguement",
+  );
 }
 
 // main function
