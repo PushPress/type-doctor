@@ -15,4 +15,4 @@ export interface CheckExpression {
   };
 }
 
-export type Node = CheckExpression;
+export type Span = CheckExpression;

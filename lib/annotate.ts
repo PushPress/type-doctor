@@ -7,12 +7,12 @@ export function annotate(diagnostics: Diagnostic[]) {
   diagnostics.forEach((d) => {
     switch (d.rule.kind) {
       case "error": {
-        const file = program.getSourceFile(d.node.args.path)!;
+        const file = program.getSourceFile(d.span.args.path)!;
         const { line, character } = file.getLineAndCharacterOfPosition(
-          d.node.args.pos,
+          d.span.args.pos,
         );
         core.error(d.rule.errorMessage, {
-          file: d.node.args.path,
+          file: d.span.args.path,
           startLine: line,
           startColumn: character,
         });
