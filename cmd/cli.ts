@@ -47,6 +47,7 @@ if (!positionals.length) {
   console.error(
     "At least one trace json file is required as a positional arguement",
   );
+  process.exit(1);
 }
 
 // parse flags
