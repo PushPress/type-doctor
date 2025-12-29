@@ -1,8 +1,8 @@
 import { parseArgs, debuglog } from "util";
-import * as Trace from "../src/trace-parser";
-import { report, maxDurationRule, annotate, format } from "../src/diagnostics";
-import { pipe } from "../src/pipe";
-import { getCurrentProgram } from "../src/compiler";
+import * as Trace from "../lib/trace-parser";
+import { report, maxDurationRule, annotate, format } from "../lib/diagnostics";
+import { pipe } from "../lib/pipe";
+import { getCurrentProgram } from "../lib/compiler";
 import { printAnnotation, printHelp } from "./print";
 const log = debuglog("type-doctor");
 
