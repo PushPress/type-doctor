@@ -30,7 +30,7 @@ export const maxDurationRule = ({
   return {
     name: "maxDuration",
     errorMessage: `Expression exceeds max duration of ${error}ms`,
-    warnMessage: `Expression exceeds max duration of ${warn}ms`,
+    warnMessage: `Expression exceeds warn duration of ${warn}ms`,
     apply: function (span: Span) {
       const spanDuration = span.dur / 1000;
       if (spanDuration > error) {
@@ -87,30 +87,16 @@ export function format(diagnostics: Diagnostic[], program: ts.Program) {
   return diagnostics
     .map((d) => {
       const { path, pos, end } = d.span.args;
-      switch (d.level) {
-        case "warn": {
-          return [
-            d.level,
-            formatDiagnostic(
-              program.getSourceFile(path)!,
-              pos,
-              end,
-              d.rule.warnMessage,
-            ),
-          ] as [typeof d.level, string];
-        }
-        case "error": {
-          return [
-            d.level,
-            formatDiagnostic(
-              program.getSourceFile(path)!,
-              pos,
-              end,
-              d.rule.errorMessage,
-            ),
-          ] as [typeof d.level, string];
-        }
-      }
+
+      return [
+        d.level,
+        formatDiagnostic(
+          program.getSourceFile(path)!,
+          pos,
+          end,
+          d.level === "warn" ? d.rule.warnMessage : d.rule.errorMessage,
+        ),
+      ] as [typeof d.level, string];
     })
     .filter((d) => d !== undefined);
 }

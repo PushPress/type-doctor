@@ -5,13 +5,20 @@ import { getCurrentProgram } from "./compiler";
 export function annotate(diagnostics: Diagnostic[]) {
   const program = getCurrentProgram();
   diagnostics.forEach((d) => {
-    switch (d.rule.kind) {
+    const file = program.getSourceFile(d.span.args.path)!;
+    const { line, character } = file.getLineAndCharacterOfPosition(
+      d.span.args.pos,
+    );
+    switch (d.level) {
       case "error": {
-        const file = program.getSourceFile(d.span.args.path)!;
-        const { line, character } = file.getLineAndCharacterOfPosition(
-          d.span.args.pos,
-        );
         core.error(d.rule.errorMessage, {
+          file: d.span.args.path,
+          startLine: line,
+          startColumn: character,
+        });
+      }
+      case "warn": {
+        core.error(d.rule.warnMessage, {
           file: d.span.args.path,
           startLine: line,
           startColumn: character,

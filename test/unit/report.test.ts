@@ -33,7 +33,7 @@ test("maxDurationRule - creates a rule with correct properties", () => {
   const rule = maxDurationRule({ warn: 100, error: 1000 });
   expect(rule.name).toBe("maxDuration");
   expect(rule.errorMessage).toBe("Expression exceeds max duration of 1000ms");
-  expect(rule.warnMessage).toBe("Expression exceeds max duration of 100ms");
+  expect(rule.warnMessage).toBe("Expression exceeds warn duration of 100ms");
   expect(typeof rule.apply).toBe("function");
 });
 
