@@ -44,21 +44,36 @@ Or use the compiled binary:
 
 ### Options
 
-- `-d, --maxDuration <ms>`: Set the maximum duration threshold in milliseconds for a single expression check (default: `1000`)
+- `--checkTimeMsWarn <ms>`: Set the warning threshold in milliseconds for a single expression check (default: `500`)
+- `--checkTimeMsError <ms>`: Set the error threshold in milliseconds for a single expression check (default: `1000`). Must be greater than `checkTimeMsWarn`
 - `-a, --annotate`: Enable GitHub Actions annotations (also enabled automatically in CI)
+- `-d, --debug`: Enable debug logging
+- `-h, --help`: Show help message
 
 ### Examples
 
-Analyze with a custom threshold:
+Analyze with a custom error threshold:
 
 ```bash
-bun cmd/cli.ts -d 50 trace.json
+bun cmd/cli.ts --checkTimeMsError 50 trace.json
+```
+
+Analyze with custom warning and error thresholds:
+
+```bash
+bun cmd/cli.ts --checkTimeMsWarn 200 --checkTimeMsError 500 trace.json
 ```
 
 Enable GitHub Actions annotations:
 
 ```bash
 bun cmd/cli.ts -a trace.json
+```
+
+Enable debug logging:
+
+```bash
+bun cmd/cli.ts -d trace.json
 ```
 
 ## Requirements
