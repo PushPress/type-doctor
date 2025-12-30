@@ -1,47 +1,59 @@
-import { Node } from "./types";
+import { Span } from "./types";
 import * as core from "@actions/core";
 import ts from "typescript";
 import { formatDiagnostic } from "./format";
 
-type MaxDurationRule = {
-  name: "maxDuration";
-  kind: "error";
-  duration: number;
+type BuildRule<Name extends string> = {
+  name: Name;
   errorMessage: string;
-  apply: (expr: Node) => boolean; // true if rule is violated
+  warnMessage: string;
+  apply: (expr: Span) => "warn" | "error" | "none"; // true if rule is violated
 };
+
+type MaxDurationRule = BuildRule<"maxDuration">;
 
 type Rule = MaxDurationRule;
 
 export interface Diagnostic {
-  node: Node; // will be a union of checked nodes
+  span: Span; // AST node for the relavent source code
   rule: Rule; // will be a union of rules
+  level: "warn" | "error" | "none";
 }
 
-export const maxDurationRule = (duration: number): MaxDurationRule => {
+export const maxDurationRule = ({
+  warn,
+  error,
+}: {
+  warn: number;
+  error: number;
+}): MaxDurationRule => {
   return {
     name: "maxDuration",
-    kind: "error",
-    duration,
-    errorMessage: `Expression exceeds max duration of ${duration}ms`,
-    apply: function (expr: Node) {
-      // convert duration in microseconds to milliseconds
-      return expr.dur / 1000 > duration;
+    errorMessage: `Expression exceeds max duration of ${error}ms`,
+    warnMessage: `Expression exceeds max duration of ${warn}ms`,
+    apply: function (span: Span) {
+      const spanDuration = span.dur / 1000;
+      if (spanDuration > error) {
+        return "error";
+      }
+      if (spanDuration > warn) {
+        return "warn";
+      }
+      return "none";
     },
   };
 };
 
 /** extends to other rules */
-export function report(expressions: Node[], rules: Rule[]): Diagnostic[] {
-  return expressions.flatMap((expr) => {
-    return rules
-      .filter((rule) => rule.apply(expr))
-      .map((rule) => {
-        return {
-          node: expr,
-          rule,
-        };
-      });
+export function report(spans: Span[], rules: Rule[]): Diagnostic[] {
+  return spans.flatMap((span) => {
+    return rules.map((rule) => {
+      return {
+        span,
+        rule,
+        level: rule.apply(span),
+      };
+    });
   });
 }
 
@@ -52,40 +64,53 @@ export function annotate(
   diagnostics: Diagnostic[],
   program: ts.Program,
 ): [string, core.AnnotationProperties][] {
-  return diagnostics.map((d) => {
-    switch (d.rule.kind) {
-      case "error": {
-        const { path, pos } = d.node.args;
-        const file = program.getSourceFile(path)!;
-        const { line, character } = file.getLineAndCharacterOfPosition(pos);
-        return [
-          d.rule.errorMessage,
-          {
-            file: path,
-            startLine: line,
-            startColumn: character,
-          },
-        ];
-      }
-    }
-  });
+  return diagnostics
+    .filter((d) => d.level !== "none")
+    .map((d) => {
+      const { path, pos } = d.span.args;
+      const file = program.getSourceFile(path)!;
+      const { line, character } = file.getLineAndCharacterOfPosition(pos);
+      const message =
+        d.level === "error" ? d.rule.errorMessage : d.rule.warnMessage;
+      return [
+        message,
+        {
+          file: path,
+          startLine: line,
+          startColumn: character,
+        },
+      ];
+    });
 }
 
 export function format(diagnostics: Diagnostic[], program: ts.Program) {
-  return diagnostics.map((d) => {
-    switch (d.rule.kind) {
-      case "error": {
-        const { path, pos, end } = d.node.args;
-        return [
-          "error",
-          formatDiagnostic(
-            program.getSourceFile(path)!,
-            pos,
-            end,
-            d.rule.errorMessage,
-          ),
-        ] as ["error", string];
+  return diagnostics
+    .map((d) => {
+      const { path, pos, end } = d.span.args;
+      switch (d.level) {
+        case "warn": {
+          return [
+            d.level,
+            formatDiagnostic(
+              program.getSourceFile(path)!,
+              pos,
+              end,
+              d.rule.warnMessage,
+            ),
+          ] as [typeof d.level, string];
+        }
+        case "error": {
+          return [
+            d.level,
+            formatDiagnostic(
+              program.getSourceFile(path)!,
+              pos,
+              end,
+              d.rule.errorMessage,
+            ),
+          ] as [typeof d.level, string];
+        }
       }
-    }
-  });
+    })
+    .filter((d) => d !== undefined);
 }

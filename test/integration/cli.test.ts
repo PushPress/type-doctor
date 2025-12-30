@@ -59,6 +59,12 @@ test("CLI accepts --checkTimeMsError option", async () => {
   expect(exitCode).not.toBeNull();
 });
 
+test("CLI accepts --checkTimeMsWarn option", async () => {
+  const { exitCode } = await run(["--checkTimeMsWarn", "100", TRACE_FILE]);
+
+  expect(exitCode).not.toBeNull();
+});
+
 test("CLI accepts --annotate flag", async () => {
   const { exitCode } = await run(["--annotate", TRACE_FILE]);
 
@@ -131,11 +137,77 @@ test("CLI handles zero --checkTimeMsError value", async () => {
   expect(stderr.length).toBeGreaterThan(0);
 });
 
-test("CLI handles missing trace file", async () => {
+test("CLI handles invalid --checkTimeMsWarn value", async () => {
+  const { exitCode, stderr } = await run([
+    "--checkTimeMsWarn",
+    "invalid",
+    TRACE_FILE,
+  ]);
+
+  // Should exit with error code
+  expect(exitCode).not.toBe(0);
+  expect(stderr.length).toBeGreaterThan(0);
+});
+
+test("CLI handles negative --checkTimeMsWarn value", async () => {
+  const { exitCode, stderr } = await run([
+    "--checkTimeMsWarn",
+    "-1",
+    TRACE_FILE,
+  ]);
+
+  // Should exit with error code
+  expect(exitCode).not.toBe(0);
+  expect(stderr.length).toBeGreaterThan(0);
+});
+
+test("CLI handles zero --checkTimeMsWarn value", async () => {
+  const { exitCode, stderr } = await run([
+    "--checkTimeMsWarn",
+    "0",
+    TRACE_FILE,
+  ]);
+
+  // Should exit with error code
+  expect(exitCode).not.toBe(0);
+  expect(stderr.length).toBeGreaterThan(0);
+});
+
+test("CLI handles equal warn time greater than error times", async () => {
+  const { exitCode, stderr } = await run([
+    "--checkTimeMsWarn",
+    "101",
+    "--checkTimeMsError",
+    "100",
+    TRACE_FILE,
+  ]);
+
+  // Should exit with error code
+  expect(exitCode).not.toBe(0);
+  expect(stderr.length).toBeGreaterThan(0);
+});
+
+test("CLI handles equal warn and error times", async () => {
+  const { exitCode, stderr } = await run([
+    "--checkTimeMsWarn",
+    "100",
+    "--checkTimeMsError",
+    "100",
+    TRACE_FILE,
+  ]);
+
+  // Should exit with error code
+  expect(exitCode).not.toBe(0);
+  expect(stderr.length).toBeGreaterThan(0);
+});
+
+test("CLI handles missing trace position ", async () => {
   const { exitCode, stderr } = await run([]);
 
   expect(exitCode).not.toBe(0);
-  expect(stderr).toContain("trace json file");
+  expect(stderr).toContain(
+    "Must provide at least one trace json positional arguement",
+  );
 });
 
 test("CLI handles non-existent trace file", async () => {

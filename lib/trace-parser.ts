@@ -5,8 +5,8 @@ export function parse(file: any): [CheckExpression[], Error | undefined] {
     const err = new Error("File is not an array of traces");
     return [[], err];
   }
-  const expressions = file.filter((val) => {
+  const spans = file.filter((val) => {
     return val?.name === "checkExpression";
   }) as CheckExpression[];
-  return [expressions, undefined];
+  return [spans, undefined];
 }

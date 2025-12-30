@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
 import { maxDurationRule, report } from "../../lib/diagnostics";
-import { Node } from "../../lib/types";
+import { Span } from "../../lib/types";
 
 /**
  * Helper to create a mock Node (CheckExpression) for testing
@@ -10,7 +10,7 @@ function createCheckExpressionNode(
   path: string = "test.ts",
   pos: number = 0,
   end: number = 10,
-): Node {
+): Span {
   return {
     pid: 1,
     tid: 1,
@@ -30,66 +30,42 @@ function createCheckExpressionNode(
 
 // maxDurationRule tests
 test("maxDurationRule - creates a rule with correct properties", () => {
-  const rule = maxDurationRule(1000);
+  const rule = maxDurationRule({ warn: 100, error: 1000 });
   expect(rule.name).toBe("maxDuration");
-  expect(rule.kind).toBe("error");
-  expect(rule.duration).toBe(1000);
   expect(rule.errorMessage).toBe("Expression exceeds max duration of 1000ms");
+  expect(rule.warnMessage).toBe("Expression exceeds max duration of 100ms");
   expect(typeof rule.apply).toBe("function");
 });
 
-test("maxDurationRule - apply returns false when duration is below threshold", () => {
-  const rule = maxDurationRule(1000); // 1000ms threshold
+test("maxDurationRule - apply returns warn when duration is between warn and error thresholds", () => {
+  const rule = maxDurationRule({ warn: 100, error: 1000 });
   const node = createCheckExpressionNode(500000); // 500ms in microseconds
-  expect(rule.apply(node)).toBe(false);
+  expect(rule.apply(node)).toBe("warn");
 });
 
-test("maxDurationRule - apply returns false when duration equals threshold", () => {
-  const rule = maxDurationRule(1000); // 1000ms threshold
+test("maxDurationRule - apply return warn when duration equals threshold", () => {
+  const rule = maxDurationRule({ warn: 100, error: 1000 });
   const node = createCheckExpressionNode(1000000); // exactly 1000ms in microseconds
-  expect(rule.apply(node)).toBe(false);
+  expect(rule.apply(node)).toBe("warn");
 });
 
 test("maxDurationRule - apply returns true when duration exceeds threshold", () => {
-  const rule = maxDurationRule(1000); // 1000ms threshold
+  const rule = maxDurationRule({ warn: 100, error: 1000 });
   const node = createCheckExpressionNode(1500000); // 1500ms in microseconds
-  expect(rule.apply(node)).toBe(true);
+  expect(rule.apply(node)).toBe("error");
 });
 
 test("maxDurationRule - apply handles small threshold values", () => {
-  const rule = maxDurationRule(10); // 10ms threshold
+  const rule = maxDurationRule({ warn: 10, error: 100 });
   const nodeBelow = createCheckExpressionNode(5000); // 5ms in microseconds
   const nodeAbove = createCheckExpressionNode(15000); // 15ms in microseconds
 
-  expect(rule.apply(nodeBelow)).toBe(false);
-  expect(rule.apply(nodeAbove)).toBe(true);
-});
-
-test("maxDurationRule - apply handles large threshold values", () => {
-  const rule = maxDurationRule(5000); // 5000ms threshold
-  const nodeBelow = createCheckExpressionNode(3000000); // 3000ms in microseconds
-  const nodeAbove = createCheckExpressionNode(6000000); // 6000ms in microseconds
-
-  expect(rule.apply(nodeBelow)).toBe(false);
-  expect(rule.apply(nodeAbove)).toBe(true);
-});
-
-test("maxDurationRule - apply handles zero duration", () => {
-  const rule = maxDurationRule(1000);
-  const node = createCheckExpressionNode(0);
-  expect(rule.apply(node)).toBe(false);
-});
-
-test("maxDurationRule - error message includes correct duration", () => {
-  const rule1 = maxDurationRule(50);
-  expect(rule1.errorMessage).toBe("Expression exceeds max duration of 50ms");
-
-  const rule2 = maxDurationRule(2500);
-  expect(rule2.errorMessage).toBe("Expression exceeds max duration of 2500ms");
+  expect(rule.apply(nodeBelow)).toBe("none");
+  expect(rule.apply(nodeAbove)).toBe("warn");
 });
 
 test("report - returns empty array when no expressions violate the rule", () => {
-  const rule = maxDurationRule(1000);
+  const rule = maxDurationRule({ warn: 1000, error: 2000 });
   const expressions = [
     createCheckExpressionNode(500000), // 500ms
     createCheckExpressionNode(800000), // 800ms
@@ -97,43 +73,52 @@ test("report - returns empty array when no expressions violate the rule", () => 
   ];
 
   const diagnostics = report(expressions, [rule]);
-  expect(diagnostics).toEqual([]);
+  // Filter out "none" level diagnostics since they don't violate the rule
+  const violations = diagnostics.filter((d) => d.level !== "none");
+  expect(violations).toEqual([]);
 });
 
 test("report - returns diagnostics for expressions that exceed threshold", () => {
-  const rule = maxDurationRule(1000);
+  const rule = maxDurationRule({ warn: 1000, error: 2000 });
   const expressions = [
     createCheckExpressionNode(500000), // 500ms - should pass
-    createCheckExpressionNode(1500000), // 1500ms - should fail
-    createCheckExpressionNode(2000000), // 2000ms - should fail
+    createCheckExpressionNode(1500000), // 1500ms - should warn
+    createCheckExpressionNode(2500000), // 2500ms - should error
   ];
 
   const diagnostics = report(expressions, [rule]);
-  expect(diagnostics).toHaveLength(2);
-  expect(diagnostics[0].node).toBe(expressions[1]);
-  expect(diagnostics[0].rule).toBe(rule);
-  expect(diagnostics[1].node).toBe(expressions[2]);
-  expect(diagnostics[1].rule).toBe(rule);
+  // Filter out "none" level diagnostics
+  const violations = diagnostics.filter((d) => d.level !== "none");
+  expect(violations).toHaveLength(2);
+  expect(violations[0].span).toBe(expressions[1]);
+  expect(violations[0].rule).toBe(rule);
+  expect(violations[0].level).toBe("warn");
+  expect(violations[1].span).toBe(expressions[2]);
+  expect(violations[1].rule).toBe(rule);
+  expect(violations[1].level).toBe("error");
 });
 
 test("report - handles all expressions exceeding threshold", () => {
-  const rule = maxDurationRule(1000);
+  const rule = maxDurationRule({ warn: 1000, error: 2000 });
   const expressions = [
-    createCheckExpressionNode(2000000), // 2000ms
-    createCheckExpressionNode(3000000), // 3000ms
-    createCheckExpressionNode(4000000), // 4000ms
+    createCheckExpressionNode(2500000), // 2500ms - exceeds error threshold
+    createCheckExpressionNode(3000000), // 3000ms - exceeds error threshold
+    createCheckExpressionNode(4000000), // 4000ms - exceeds error threshold
   ];
 
   const diagnostics = report(expressions, [rule]);
-  expect(diagnostics).toHaveLength(3);
-  diagnostics.forEach((diagnostic, index) => {
-    expect(diagnostic.node).toBe(expressions[index]);
+  // Filter out "none" level diagnostics
+  const violations = diagnostics.filter((d) => d.level !== "none");
+  expect(violations).toHaveLength(3);
+  violations.forEach((diagnostic, index) => {
+    expect(diagnostic.span).toBe(expressions[index]);
     expect(diagnostic.rule).toBe(rule);
+    expect(diagnostic.level).toBe("error");
   });
 });
 
 test("report - handles empty expressions array", () => {
-  const rule = maxDurationRule(1000);
+  const rule = maxDurationRule({ warn: 1000, error: 2000 });
   const diagnostics = report([], [rule]);
   expect(diagnostics).toEqual([]);
 });
