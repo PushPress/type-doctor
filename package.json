@@ -14,7 +14,7 @@
   },
   "scripts": {
     "prepublish": "bun run build",
-    "build": "bun build ./cmd/cli.ts --compile --outfile ./bin/td"
+    "build": "bun build ./cmd/cli.ts --outfile ./bin/td --target node"
   },
   "devDependencies": {
     "@types/bun": "^1.3.5"
