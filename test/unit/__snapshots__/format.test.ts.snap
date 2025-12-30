@@ -1,0 +1,97 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`formatDiagnostic - standard message 1`] = `
+"
+Expression exceeds max duration of 10ms
+  at test.ts:1:7
+  1 | const x = 42;
+    |       ^
+  2 | const y = x + 1;
+"
+`;
+
+exports[`formatDiagnostic - long message 1`] = `
+"
+This is a very long error message that describes a complex type error that occurred during type checking and includes many details about what went wrong and why it happened and what you should do about it
+  at test.ts:1:7
+  1 | const x = 42;
+    |       ^
+  2 | const y = x + 1;
+"
+`;
+
+exports[`formatDiagnostic - beginning of file without context 1`] = `
+"
+Expression exceeds max duration of 10ms
+  at test.ts:1:1
+  1 | const x = 42;
+    | ^^^^^
+  2 | const y = x + 1;
+"
+`;
+
+exports[`formatDiagnostic - beginning of file with context 1`] = `
+"
+Expression exceeds max duration of 10ms
+  at test.ts:1:1
+  1 | const x = 42;
+    | ^^^^^
+  2 | const y = x + 1;
+  3 | const z = y + 1;
+"
+`;
+
+exports[`formatDiagnostic - end of file without context 1`] = `
+"
+Expression exceeds max duration of 10ms
+  at test.ts:3:16
+  2 | const y = x + 1;
+  3 | const z = y + 1;
+    |                ^
+"
+`;
+
+exports[`formatDiagnostic - end of file with context 1`] = `
+"
+Expression exceeds max duration of 10ms
+  at test.ts:3:16
+  1 | const x = 42;
+  2 | const y = x + 1;
+  3 | const z = y + 1;
+    |                ^
+"
+`;
+
+exports[`formatDiagnostic - single character position 1`] = `
+"
+Expression exceeds max duration of 10ms
+  at test.ts:1:7
+  1 | const x = 42;
+    |       ^
+"
+`;
+
+exports[`formatDiagnostic - multiple character span 1`] = `
+"
+Expression exceeds max duration of 10ms
+  at test.ts:1:1
+  1 | const x = 42;
+    | ^^^^^^^
+  2 | const y = x + 1;
+"
+`;
+
+exports[`formatDiagnostic - multiple line span 1`] = `
+"
+Expression exceeds max duration of 10ms
+  at test.ts:2:3
+  1 | function test() {
+  2 |   const x = 42;
+    |   ^^^^^^^^^^^^^
+  3 |   const y = x + 1;
+    | ^^^^^^^^^^^^^^^^^^
+  4 |   return y;
+    | ^^^^^^^^^^
+  5 | }
+"
+`;
