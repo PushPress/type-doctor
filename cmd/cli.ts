@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { parseArgs } from "util";
 import * as Trace from "../lib/trace-parser";
 import { report, maxDurationRule, annotate, format } from "../lib/diagnostics";
