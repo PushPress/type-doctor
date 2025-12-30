@@ -21,8 +21,11 @@ DESCRIPTION:
   to type-check. Helps find performance bottlenecks in your TypeScript codebase.
 
 OPTIONS:
-  --checkTimeMsError <ms>  Set the maximum duration threshold in milliseconds
-                           for a single expression check (default: 1000)
+  --checkTimeMsWarn <ms>   Set the warning threshold in milliseconds for a
+                           single expression check (default: 500)
+  --checkTimeMsError <ms>  Set the error threshold in milliseconds for a
+                           single expression check (default: 1000)
+                           Must be greater than checkTimeMsWarn
   -a, --annotate           Enable GitHub Actions annotations (also enabled
                            automatically in CI)
   -d, --debug              Enable debug logging
@@ -31,6 +34,7 @@ OPTIONS:
 EXAMPLES:
   type-doctor trace.json
   type-doctor --checkTimeMsError 50 trace.json
+  type-doctor --checkTimeMsWarn 200 --checkTimeMsError 500 trace.json
   type-doctor -a trace.json
   type-doctor -d trace.json trace2.json
 `.trim(),
