@@ -18,7 +18,6 @@ export function annotate(diagnostics: Diagnostic[]) {
         });
       }
       case "warn": {
-        console.log("warning......");
         core.warning(d.rule.warnMessage, {
           file: d.span.args.path,
           startLine: line,
