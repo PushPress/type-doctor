@@ -1,5 +1,10 @@
 import { test, expect } from "bun:test";
-import { maxDurationRule, report } from "../../lib/diagnostics";
+import {
+  maxDurationRule,
+  report,
+  createSummaryMessage,
+  Diagnostic,
+} from "../../lib/diagnostics";
 import { Span } from "../../lib/types";
 
 /**
@@ -31,7 +36,7 @@ function createCheckExpressionNode(
 // maxDurationRule tests
 test("maxDurationRule - creates a rule with correct properties", () => {
   const rule = maxDurationRule({ warn: 100, error: 1000 });
-  expect(rule.name).toBe("maxDuration");
+  expect(rule.name).toBe("typeCheckTime");
   expect(rule.errorMessage).toBe("Expression exceeds max duration of 1000ms");
   expect(rule.warnMessage).toBe("Expression exceeds warn duration of 100ms");
   expect(typeof rule.apply).toBe("function");
@@ -60,7 +65,7 @@ test("maxDurationRule - apply handles small threshold values", () => {
   const nodeBelow = createCheckExpressionNode(5000); // 5ms in microseconds
   const nodeAbove = createCheckExpressionNode(15000); // 15ms in microseconds
 
-  expect(rule.apply(nodeBelow)).toBe("none");
+  expect(rule.apply(nodeBelow)).toBe(undefined);
   expect(rule.apply(nodeAbove)).toBe("warn");
 });
 
@@ -121,4 +126,74 @@ test("report - handles empty expressions array", () => {
   const rule = maxDurationRule({ warn: 1000, error: 2000 });
   const diagnostics = report([], [rule]);
   expect(diagnostics).toEqual([]);
+});
+
+// createSummaryMessage tests
+test("createSummaryMessage - returns message for no errors or warnings", () => {
+  const rule = maxDurationRule({ warn: 1000, error: 2000 });
+  const expressions = [
+    createCheckExpressionNode(500000), // 500ms - should pass
+    createCheckExpressionNode(800000), // 800ms - should pass
+  ];
+  const diagnostics = report(expressions, [rule]);
+  const summary = createSummaryMessage(diagnostics);
+  expect(summary).toBe("No errors or warnings found.");
+});
+
+test("createSummaryMessage - returns correct summary for single rule with errors and warnings", () => {
+  const rule = maxDurationRule({ warn: 1000, error: 2000 });
+  const expressions = [
+    createCheckExpressionNode(1500000), // 1500ms - should warn
+    createCheckExpressionNode(2500000), // 2500ms - should error
+    createCheckExpressionNode(3000000), // 3000ms - should error
+  ];
+  const diagnostics = report(expressions, [rule]);
+  const summary = createSummaryMessage(diagnostics);
+  expect(summary).toBe("typeCheckTime: 2 errors, 1 warning");
+});
+
+test("createSummaryMessage - returns correct summary for only errors", () => {
+  const rule = maxDurationRule({ warn: 1000, error: 2000 });
+  const expressions = [
+    createCheckExpressionNode(2500000), // 2500ms - should error
+    createCheckExpressionNode(3000000), // 3000ms - should error
+  ];
+  const diagnostics = report(expressions, [rule]);
+  const summary = createSummaryMessage(diagnostics);
+  expect(summary).toBe("typeCheckTime: 2 errors");
+});
+
+test("createSummaryMessage - returns correct summary for only warnings", () => {
+  const rule = maxDurationRule({ warn: 1000, error: 2000 });
+  const expressions = [
+    createCheckExpressionNode(1500000), // 1500ms - should warn
+    createCheckExpressionNode(1800000), // 1800ms - should warn
+  ];
+  const diagnostics = report(expressions, [rule]);
+  const summary = createSummaryMessage(diagnostics);
+  expect(summary).toBe("typeCheckTime: 2 warnings");
+});
+
+test("createSummaryMessage - handles singular vs plural correctly", () => {
+  const rule = maxDurationRule({ warn: 1000, error: 2000 });
+  const expressions = [
+    createCheckExpressionNode(1500000), // 1500ms - should warn
+    createCheckExpressionNode(2500000), // 2500ms - should error
+  ];
+  const diagnostics = report(expressions, [rule]);
+  const summary = createSummaryMessage(diagnostics);
+  expect(summary).toBe("typeCheckTime: 1 error, 1 warning");
+});
+
+test("createSummaryMessage - filters out none level diagnostics", () => {
+  const rule = maxDurationRule({ warn: 1000, error: 2000 });
+  const expressions = [
+    createCheckExpressionNode(500000), // 500ms - should be "none"
+    createCheckExpressionNode(1500000), // 1500ms - should warn
+    createCheckExpressionNode(2500000), // 2500ms - should error
+  ];
+  const diagnostics = report(expressions, [rule]);
+  const summary = createSummaryMessage(diagnostics);
+  // Should only count the warn and error, not the "none"
+  expect(summary).toBe("typeCheckTime: 1 error, 1 warning");
 });
