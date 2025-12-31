@@ -1,7 +1,13 @@
-#!/usr/bin/env node
 import { parseArgs } from "util";
 import * as Trace from "../lib/trace-parser";
-import { report, maxDurationRule, annotate, format } from "../lib/diagnostics";
+import {
+  report,
+  maxDurationRule,
+  annotate,
+  format,
+  createSummaryMessage,
+  Rule,
+} from "../lib/diagnostics";
 import { getCurrentProgram } from "../lib/compiler";
 import { printAnnotation, printHelp } from "./print";
 import { z } from "zod";
@@ -9,8 +15,8 @@ import { logger } from "./log";
 
 const Args = z
   .object({
-    checkTimeMsError: z.coerce.number().positive(),
-    checkTimeMsWarn: z.coerce.number().positive(),
+    checkTimeMsError: z.coerce.number().positive().optional(),
+    checkTimeMsWarn: z.coerce.number().positive().optional(),
     annotate: z.boolean().default(false),
     help: z.boolean().default(false),
     debug: z.boolean().default(false),
@@ -44,7 +50,6 @@ const { values, positionals: _positionals } = parseArgs({
   options: {
     checkTimeMsWarn: {
       type: "string",
-      default: "500",
     },
     checkTimeMsError: {
       type: "string",
@@ -65,11 +70,17 @@ const { values, positionals: _positionals } = parseArgs({
   },
 });
 
-const { help, debug, checkTimeMsError, checkTimeMsWarn, positionals } =
-  validateArgsOrExit({
-    positionals: _positionals.slice(2),
-    ...values,
-  });
+const {
+  help,
+  debug,
+  checkTimeMsError,
+  checkTimeMsWarn,
+  positionals,
+  annotate: shouldAnnotate,
+} = validateArgsOrExit({
+  positionals: _positionals.slice(2),
+  ...values,
+});
 
 if (help) {
   printHelp();
@@ -91,15 +102,19 @@ for (const positional of positionals) {
     throw error;
   }
 
+  const rules: Rule[] = [];
+  if (checkTimeMsError || checkTimeMsWarn) {
+    rules.push(
+      maxDurationRule({ error: checkTimeMsError, warn: checkTimeMsWarn }),
+    );
+  }
+
   // apply rules to the the expression
-  const diagnostics = report(spans, [
-    maxDurationRule({ error: checkTimeMsError, warn: checkTimeMsWarn }),
-  ]);
+  const diagnostics = report(spans, rules);
 
   logger.debug("Raw diagnostics: " + JSON.stringify(diagnostics));
 
-  if (process.env.CI || annotate) {
-    logger.debug("Annotating diagnostics");
+  if (process.env.CI || shouldAnnotate) {
     annotate(diagnostics, program).map(([message, props]) =>
       printAnnotation(message, props),
     );
@@ -108,4 +123,6 @@ for (const positional of positionals) {
   format(diagnostics, program).map(([kind, formatted]) =>
     logger[kind](formatted),
   );
+
+  logger.info(createSummaryMessage(diagnostics));
 }
