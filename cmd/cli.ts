@@ -124,5 +124,11 @@ for (const positional of positionals) {
     logger[kind](formatted),
   );
 
-  logger.info(createSummaryMessage(diagnostics));
+  const summary = createSummaryMessage(diagnostics);
+
+  if (diagnostics.find((d) => d.level === "error")) {
+    logger.errorAndFail(summary);
+  }
+
+  logger.info(summary);
 }
