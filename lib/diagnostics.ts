@@ -5,8 +5,8 @@ import { formatDiagnostic } from "./format";
 
 type BuildRule<Name extends string> = {
   name: Name;
-  errorMessage: string;
-  warnMessage: string;
+  errorMessage: (span: Span) => string;
+  warnMessage: (span: Span) => string;
   apply: (expr: Span) => "warn" | "error" | undefined; // true if rule is violated
 };
 
@@ -29,8 +29,10 @@ export const maxDurationRule = ({
 }): MaxDurationRule => {
   return {
     name: "typeCheckTime",
-    errorMessage: `Expression exceeds max duration of ${error}ms`,
-    warnMessage: `Expression exceeds warn duration of ${warn}ms`,
+    errorMessage: (span) =>
+      `Expression check time ${Math.floor(span.dur / 1000)} exceeds max duration of ${error}ms`,
+    warnMessage: (span) =>
+      `Expression check time ${Math.floor(span.dur / 1000)} exceeds warn duration of ${warn}ms`,
     apply: function (span: Span) {
       const spanDuration = span.dur / 1000;
       if (error && spanDuration > error) {
@@ -75,7 +77,9 @@ export function annotate(
     const file = program.getSourceFile(path)!;
     const { line, character } = file.getLineAndCharacterOfPosition(pos);
     const message =
-      d.level === "error" ? d.rule.errorMessage : d.rule.warnMessage;
+      d.level === "error"
+        ? d.rule.errorMessage(d.span)
+        : d.rule.warnMessage(d.span);
     return [
       message,
       {
@@ -98,7 +102,9 @@ export function format(diagnostics: Diagnostic[], program: ts.Program) {
           program.getSourceFile(path)!,
           pos,
           end,
-          d.level === "warn" ? d.rule.warnMessage : d.rule.errorMessage,
+          d.level === "warn"
+            ? d.rule.warnMessage(d.span)
+            : d.rule.errorMessage(d.span),
         ),
       ] as [typeof d.level, string];
     })

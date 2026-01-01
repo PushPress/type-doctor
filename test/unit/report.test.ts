@@ -37,8 +37,14 @@ function createCheckExpressionNode(
 test("maxDurationRule - creates a rule with correct properties", () => {
   const rule = maxDurationRule({ warn: 100, error: 1000 });
   expect(rule.name).toBe("typeCheckTime");
-  expect(rule.errorMessage).toBe("Expression exceeds max duration of 1000ms");
-  expect(rule.warnMessage).toBe("Expression exceeds warn duration of 100ms");
+  const mockSpan = createCheckExpressionNode(2000000); // 2000ms to trigger error
+  expect(rule.errorMessage(mockSpan)).toBe(
+    "Expression check time 2000 exceeds max duration of 1000ms",
+  );
+  const warnSpan = createCheckExpressionNode(150000); // 150ms to trigger warn
+  expect(rule.warnMessage(warnSpan)).toBe(
+    "Expression check time 150 exceeds warn duration of 100ms",
+  );
   expect(typeof rule.apply).toBe("function");
 });
 
